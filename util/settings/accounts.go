@@ -145,6 +145,7 @@ func (mgr *SettingsManager) UpdateAccount(name string, callback func(account *Ac
 
 // GetAccounts returns list of configured accounts
 func (mgr *SettingsManager) GetAccounts() (map[string]Account, error) {
+	log.Infof("!!! GetAccounts CALLED !!!")
 	err := mgr.ensureSynced(false)
 	if err != nil {
 		return nil, err

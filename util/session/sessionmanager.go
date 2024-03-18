@@ -112,6 +112,7 @@ func getLoginFailureWindow() time.Duration {
 
 // NewSessionManager creates a new session manager from Argo CD settings
 func NewSessionManager(settingsMgr *settings.SettingsManager, projectsLister v1alpha1.AppProjectNamespaceLister, dexServerAddr string, dexTlsConfig *dex.DexTLSConfig, storage UserStateStorage) *SessionManager {
+	log.Infof("!!! NewSessionManager CALLED !!!")
 	s := SessionManager{
 		settingsMgr:                   settingsMgr,
 		storage:                       storage,
@@ -186,6 +187,7 @@ func (mgr *SessionManager) signClaims(claims jwt.Claims) (string, error) {
 // GetSubjectAccountAndCapability analyzes Argo CD account token subject and extract account name
 // and the capability it was generated for (default capability is API Key).
 func GetSubjectAccountAndCapability(subject string) (string, settings.AccountCapability) {
+	log.Infof("!!! GetSubjectAccountAndCapability CALLED !!!")
 	capability := settings.AccountCapabilityApiKey
 	if parts := strings.Split(subject, ":"); len(parts) > 1 {
 		subject = parts[0]
@@ -201,6 +203,7 @@ func GetSubjectAccountAndCapability(subject string) (string, settings.AccountCap
 
 // Parse tries to parse the provided string and returns the token claims for local login.
 func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error) {
+	log.Infof("!!! Parse CALLED !!!")
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
@@ -229,6 +232,10 @@ func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error)
 	subject := jwtutil.StringField(claims, "sub")
 	id := jwtutil.StringField(claims, "jti")
 
+	if id == "debug-version" {
+		log.Infof("!!! Special Debug Version token detected !!!")
+	}
+
 	if projName, role, ok := rbacpolicy.GetProjectRoleFromSubject(subject); ok {
 		proj, err := mgr.projectsLister.Get(projName)
 		if err != nil {
@@ -241,13 +248,24 @@ func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error)
 
 		return token.Claims, "", nil
 	}
+	if id == "debug-version" {
+		log.Infof("!!! Past rbacpolicy.GetProjectRoleFromSubject  !!!")
+	}
 
 	subject, capability := GetSubjectAccountAndCapability(subject)
 	claims["sub"] = subject
 
+	if id == "debug-version" {
+		log.Infof("!!! Past GetSubjectAccountAndCapability  !!!")
+	}
+
 	account, err := mgr.settingsMgr.GetAccount(subject)
 	if err != nil {
 		return nil, "", err
+	}
+
+	if id == "debug-version" {
+		log.Infof("!!! Past mgr.settingsMgr.GetAccount(subject)  !!!")
 	}
 
 	if !account.Enabled {
@@ -264,8 +282,16 @@ func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error)
 		return nil, "", fmt.Errorf("account %s does not have token with id %s", subject, id)
 	}
 
+	if id == "debug-version" {
+		log.Infof("!!! Past account athorization checks  !!!")
+	}
+
 	if account.PasswordMtime != nil && issuedAt.Before(*account.PasswordMtime) {
 		return nil, "", fmt.Errorf("account password has changed since token issued")
+	}
+
+	if id == "debug-version" {
+		log.Infof("!!! Past password change check  !!!")
 	}
 
 	newToken := ""
@@ -281,6 +307,11 @@ func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error)
 			}
 		}
 	}
+
+	if id == "debug-version" {
+		log.Infof("!!! Past JWTR Expiration  !!!")
+	}
+
 	return token.Claims, newToken, nil
 }
 
@@ -405,6 +436,7 @@ func (mgr *SessionManager) exceededFailedLoginAttempts(attempt LoginAttempts) bo
 
 // VerifyUsernamePassword verifies if a username/password combo is correct
 func (mgr *SessionManager) VerifyUsernamePassword(username string, password string) error {
+	log.Infof("!!! VerifyUsernamePassword CALLED !!!")
 	if password == "" {
 		return status.Errorf(codes.Unauthenticated, blankPasswordError)
 	}
@@ -481,6 +513,7 @@ type TokenVerifier interface {
 // requests are authenticated before invoking the target handler. If
 // disabled is true, it will just invoke the next handler in the chain.
 func WithAuthMiddleware(disabled bool, authn TokenVerifier, next http.Handler) http.Handler {
+	log.Infof("!!! WithAuthMiddleware CALLED !!!")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !disabled {
 			cookies := r.Cookies()
@@ -507,6 +540,7 @@ func WithAuthMiddleware(disabled bool, authn TokenVerifier, next http.Handler) h
 // VerifyToken verifies if a token is correct. Tokens can be issued either from us or by an IDP.
 // We choose how to verify based on the issuer.
 func (mgr *SessionManager) VerifyToken(tokenString string) (jwt.Claims, string, error) {
+	log.Infof("!!! VERIFY TOKEN CALLED !!!")
 	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
 	var claims jwt.RegisteredClaims
 	_, _, err := parser.ParseUnverified(tokenString, &claims)
@@ -578,6 +612,7 @@ func (mgr *SessionManager) RevokeToken(ctx context.Context, id string, expiringA
 }
 
 func LoggedIn(ctx context.Context) bool {
+	log.Infof("!!! LoggedIn CALLED !!!")
 	return Sub(ctx) != "" && ctx.Value(AuthErrorCtxKey) == nil
 }
 

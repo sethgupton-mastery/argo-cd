@@ -1284,6 +1284,7 @@ func replaceBaseHRef(data string, replaceWith string) string {
 
 // Authenticate checks for the presence of a valid token when accessing server-side resources.
 func (a *ArgoCDServer) Authenticate(ctx context.Context) (context.Context, error) {
+	log.Infof("!!! Authenticate CALLED !!!")
 	if a.DisableAuth {
 		return ctx, nil
 	}
@@ -1323,6 +1324,7 @@ func (a *ArgoCDServer) Authenticate(ctx context.Context) (context.Context, error
 }
 
 func (a *ArgoCDServer) getClaims(ctx context.Context) (jwt.Claims, string, error) {
+	log.Infof("!!! getClaims CALLED !!!")
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, "", ErrNoSession
@@ -1440,6 +1442,7 @@ func (bf *bug21955Workaround) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func bug21955WorkaroundInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	log.Infof("!!! bug21955WorkaroundInterceptor CALLED !!!")
 	if rq, ok := req.(*repositorypkg.RepoQuery); ok {
 		repo, err := url.QueryUnescape(rq.Repo)
 		if err != nil {
