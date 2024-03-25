@@ -78,8 +78,10 @@ func (storage *userStateStorage) loadRevokedTokensSafe() {
 }
 
 func (storage *userStateStorage) loadRevokedTokens() error {
+	log.Infof("!!! loadRevokedTokens attempting Lock !!!")
 	storage.lock.Lock()
-	defer storage.lock.Unlock()
+	log.Infof("!!! loadRevokedTokens successful Lock !!!")
+	defer storage.UnlockLog("!!! loadRevokedTokens Unlock called !!!")
 	storage.revokedTokens = map[string]bool{}
 	iterator := storage.redis.Scan(context.Background(), 0, revokedTokenPrefix+"*", -1).Iterator()
 	for iterator.Next(context.Background()) {
@@ -110,18 +112,33 @@ func (storage *userStateStorage) SetLoginAttempts(attempts map[string]LoginAttem
 }
 
 func (storage *userStateStorage) RevokeToken(ctx context.Context, id string, expiringAt time.Duration) error {
+	log.Infof("!!! RevokeToken attempting Lock !!!")
 	storage.lock.Lock()
+	log.Infof("!!! RevokeToken successful Lock !!!")
 	storage.revokedTokens[id] = true
 	storage.lock.Unlock()
+	log.Infof("!!! RevokeToken successful Unlock !!!")
 	if err := storage.redis.Set(ctx, revokedTokenPrefix+id, "", expiringAt).Err(); err != nil {
 		return err
 	}
 	return storage.redis.Publish(ctx, newRevokedTokenKey, id).Err()
 }
 
+func (storage *userStateStorage) RUnlockLog(message string) {
+	storage.lock.RUnlock()
+	log.Infof(message)
+}
+
+func (storage *userStateStorage) UnlockLog(message string) {
+	storage.lock.Unlock()
+	log.Infof(message)
+}
+
 func (storage *userStateStorage) IsTokenRevoked(id string) bool {
+	log.Infof("!!! IsTokenRevoked attempting RLock !!!")
 	storage.lock.RLock()
-	defer storage.lock.RUnlock()
+	log.Infof("!!! IsTokenRevoked successful RLock !!!")
+	defer storage.RUnlockLog("!!! IsTokenRevoked RUnlock called !!!")
 	return storage.revokedTokens[id]
 }
 

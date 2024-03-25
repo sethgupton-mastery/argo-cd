@@ -272,8 +272,16 @@ func (mgr *SessionManager) Parse(tokenString string) (jwt.Claims, string, error)
 		return nil, "", fmt.Errorf("account %s is disabled", subject)
 	}
 
+	if id == "debug-version" {
+		log.Infof("!!! Past account enabled  !!!")
+	}
+
 	if !account.HasCapability(capability) {
 		return nil, "", fmt.Errorf("account %s does not have '%s' capability", subject, capability)
+	}
+
+	if id == "debug-version" {
+		log.Infof("!!! Past HasCapability Check !!!")
 	}
 
 	if id == "" || mgr.storage.IsTokenRevoked(id) {
