@@ -79,11 +79,20 @@ func (storage *userStateStorage) loadRevokedTokensSafe() {
 
 func (storage *userStateStorage) loadRevokedTokens() error {
 	log.Infof("!!! loadRevokedTokens attempting Lock !!!")
+	start := time.Now()
 	storage.lock.Lock()
-	log.Infof("!!! loadRevokedTokens successful Lock !!!")
+	duration := time.Since(start)
+	start = time.Now()
+	log.Infof("!!! loadRevokedTokens successful Lock %s!!!", duration)
 	defer storage.UnlockLog("!!! loadRevokedTokens Unlock called !!!")
 	storage.revokedTokens = map[string]bool{}
+	duration = time.Since(start)
+	start = time.Now()
+	log.Infof("!!! loadRevokedTokens revokedTokens blanked %s!!!", duration)
 	iterator := storage.redis.Scan(context.Background(), 0, revokedTokenPrefix+"*", -1).Iterator()
+	duration = time.Since(start)
+	start = time.Now()
+	log.Infof("!!! loadRevokedTokens Scan %s!!!", duration)
 	for iterator.Next(context.Background()) {
 		parts := strings.Split(iterator.Val(), "|")
 		if len(parts) != 2 {
@@ -93,11 +102,16 @@ func (storage *userStateStorage) loadRevokedTokens() error {
 			continue
 		}
 		storage.revokedTokens[parts[1]] = true
+		duration = time.Since(start)
+		start = time.Now()
+		log.Infof("!!! loadRevokedTokens Gotta iterate it %s!!!", duration)
 	}
 	if iterator.Err() != nil {
 		return iterator.Err()
 	}
 
+	duration = time.Since(start)
+	log.Infof("!!! loadRevokedTokens Done %s!!!", duration)
 	return nil
 }
 
