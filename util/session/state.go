@@ -89,7 +89,7 @@ func (storage *userStateStorage) loadRevokedTokens() error {
 	duration = time.Since(start)
 	start = time.Now()
 	log.Infof("!!! loadRevokedTokens revokedTokens blanked %s!!!", duration)
-	iterator := storage.redis.Scan(context.Background(), 0, revokedTokenPrefix+"*", -1).Iterator()
+	iterator := storage.redis.Scan(context.Background(), 0, revokedTokenPrefix+"*", 10000).Iterator()
 	duration = time.Since(start)
 	start = time.Now()
 	log.Infof("!!! loadRevokedTokens Scan %s!!!", duration)
