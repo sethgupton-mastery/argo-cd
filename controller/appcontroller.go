@@ -1428,6 +1428,7 @@ func (ctrl *ApplicationController) setOperationState(app *appv1.Application, sta
 		}
 		ctrl.auditLogger.LogAppEvent(app, eventInfo, strings.Join(messages, " "), "")
 		ctrl.metricsServer.IncSync(app, state)
+		ctrl.metricsServer.IncAppSyncDuration(app, state)
 	}
 }
 
